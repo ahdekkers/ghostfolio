@@ -28,6 +28,7 @@ import { GfTopHoldingsComponent } from '@ghostfolio/ui/top-holdings';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 import { GfWorldMapChartComponent } from '@ghostfolio/ui/world-map-chart';
 
+import { KeyValuePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -39,6 +40,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -58,12 +60,14 @@ import { AllocationsPageParams } from './interfaces/interfaces';
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    KeyValuePipe,
     GfPortfolioProportionChartComponent,
     GfPremiumIndicatorComponent,
     GfTopHoldingsComponent,
     GfValueComponent,
     GfWorldMapChartComponent,
     MatCardModule,
+    MatCheckboxModule,
     MatProgressBarModule
   ],
   selector: 'gf-allocations-page',
@@ -97,6 +101,7 @@ export class GfAllocationsPageComponent implements OnInit {
       | 'name'
     > & { etfProvider: string; value: number };
   };
+  protected includedTagIds = new Set<string>();
   protected impersonationId: string | null;
   protected isLoading = false;
   protected markets: PortfolioDetails['markets'];
@@ -125,6 +130,9 @@ export class GfAllocationsPageComponent implements OnInit {
       symbol: string;
       value: number;
     };
+  };
+  protected tags: {
+    [id: string]: { name: string; value: number };
   };
   protected topHoldings: HoldingWithParents[];
   protected readonly UNKNOWN_KEY = UNKNOWN_KEY;
@@ -157,6 +165,16 @@ export class GfAllocationsPageComponent implements OnInit {
           }
         }
       );
+  }
+
+  protected get tagsFiltered(): {
+    [id: string]: { name: string; value: number };
+  } {
+    return Object.fromEntries(
+      Object.entries(this.tags).filter(([id]) => {
+        return this.includedTagIds.has(id);
+      })
+    );
   }
 
   protected get worldMapChartFormat(): string {
@@ -221,6 +239,14 @@ export class GfAllocationsPageComponent implements OnInit {
       void this.router.navigate([], {
         queryParams: { dataSource, symbol, holdingDetailDialog: true }
       });
+    }
+  }
+
+  protected toggleTag(id: string) {
+    if (this.includedTagIds.has(id)) {
+      this.includedTagIds.delete(id);
+    } else {
+      this.includedTagIds.add(id);
     }
   }
 
@@ -343,6 +369,12 @@ export class GfAllocationsPageComponent implements OnInit {
       [UNKNOWN_KEY]: {
         name: UNKNOWN_KEY,
         symbol: UNKNOWN_KEY,
+        value: 0
+      }
+    };
+    this.tags = {
+      [UNKNOWN_KEY]: {
+        name: UNKNOWN_KEY,
         value: 0
       }
     };
@@ -498,6 +530,40 @@ export class GfAllocationsPageComponent implements OnInit {
         }
       }
 
+      // A tag has no weight, unlike a sector: it applies to a holding's full
+      // value, so a holding with several tags contributes its full value to
+      // each of them.
+      if (position.tags && position.tags.length > 0) {
+        for (const { id, name } of position.tags) {
+          const value =
+            (isNumber(position.valueInBaseCurrency)
+              ? position.valueInBaseCurrency
+              : position.valueInPercentage) ?? 0;
+
+          const tagData = this.tags[id];
+
+          if (tagData) {
+            tagData.value += value;
+          } else {
+            this.tags[id] = {
+              name,
+              value
+            };
+          }
+        }
+      } else {
+        const value =
+          (isNumber(position.valueInBaseCurrency)
+            ? position.valueInBaseCurrency
+            : position.valueInPercentage) ?? 0;
+
+        const tagData = this.tags[UNKNOWN_KEY];
+
+        if (tagData) {
+          tagData.value += value;
+        }
+      }
+
       if (this.holdings[symbol].assetSubClass === 'ETF') {
         this.totalValueInEtf += this.holdings[symbol].value;
       }
@@ -513,6 +579,8 @@ export class GfAllocationsPageComponent implements OnInit {
             : position.valueInPercentage) ?? 0
       };
     }
+
+    this.includedTagIds = new Set(Object.keys(this.tags));
 
     this.markets = this.portfolioDetails.markets;
 

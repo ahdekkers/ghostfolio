@@ -118,6 +118,38 @@
         </mat-card-content>
       </mat-card>
     </div>
+    <div class="col-md-12 allocations-by-tag">
+      <mat-card appearance="outlined" class="mb-3">
+        <mat-card-header class="overflow-hidden w-100">
+          <mat-card-title class="align-items-center d-flex text-truncate">
+            <span i18n>By Tag</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="d-flex flex-wrap">
+            <gf-portfolio-proportion-chart
+              class="allocations-by-tag-chart mx-auto"
+              [baseCurrency]="user?.settings?.baseCurrency"
+              [colorScheme]="user?.settings?.colorScheme"
+              [data]="tagsFiltered"
+              [isInPercentage]="showValuesInPercentage()"
+              [keys]="['name']"
+              [locale]="user?.settings?.locale"
+            />
+            <div class="allocations-by-tag-legend">
+              @for (tag of tags | keyvalue; track tag.key) {
+                <mat-checkbox
+                  [checked]="includedTagIds.has(tag.key)"
+                  (change)="toggleTag(tag.key)"
+                >
+                  {{ tag.value.name }}
+                </mat-checkbox>
+              }
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
     <div class="col-md-4">
       <mat-card appearance="outlined" class="mb-3">
         <mat-card-header class="overflow-hidden w-100">
