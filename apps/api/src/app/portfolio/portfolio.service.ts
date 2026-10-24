@@ -26,6 +26,7 @@ import { DataProviderService } from '@ghostfolio/api/services/data-provider/data
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
 import { I18nService } from '@ghostfolio/api/services/i18n/i18n.service';
 import { SymbolProfileService } from '@ghostfolio/api/services/symbol-profile/symbol-profile.service';
+import { TagService } from '@ghostfolio/api/services/tag/tag.service';
 import {
   getAnnualizedPerformancePercent,
   getIntervalFromDateRange
@@ -36,6 +37,7 @@ import {
   TAG_ID_DRAFT,
   TAG_ID_EMERGENCY_FUND,
   TAG_ID_EXCLUDE_FROM_ANALYSIS,
+  TAG_NAME_CASH,
   UNKNOWN_KEY
 } from '@ghostfolio/common/config';
 import {
@@ -128,6 +130,7 @@ export class PortfolioService {
     @Inject(REQUEST) private readonly request: RequestWithUser,
     private readonly rulesService: RulesService,
     private readonly symbolProfileService: SymbolProfileService,
+    private readonly tagService: TagService,
     private readonly userService: UserService
   ) {}
 
@@ -735,6 +738,27 @@ export class PortfolioService {
         investment: emergencyFundInCash,
         valueInBaseCurrency: emergencyFundInCash
       };
+    }
+
+    // Cash holdings are derived from account balances and have no activities,
+    // so there is nothing for a tag to hang off. Attach the user's cash tag
+    // here, if they have created one, so cash is classified like everything
+    // else. Runs after the emergency-fund branch above, which replaces
+    // holdings[userCurrency] wholesale.
+    const cashTag = (await this.tagService.getTagsForUser(userId)).find(
+      ({ name }) => {
+        return name === TAG_NAME_CASH;
+      }
+    );
+
+    if (cashTag) {
+      for (const holding of Object.values(holdings)) {
+        if (holding.assetProfile.assetSubClass === AssetSubClass.CASH) {
+          holding.tags = [
+            { id: cashTag.id, name: cashTag.name, userId: cashTag.userId }
+          ];
+        }
+      }
     }
 
     let markets: PortfolioDetails['markets'];

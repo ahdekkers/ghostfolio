@@ -29,6 +29,11 @@ export const internalRoutes = {
         path: 'membership',
         routerLink: ['/account', 'membership'],
         title: $localize`Membership`
+      },
+      sync: {
+        path: 'sync',
+        routerLink: ['/account', 'sync'],
+        title: $localize`Sync`
       }
     },
     title: $localize`Settings`

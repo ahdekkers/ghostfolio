@@ -138,6 +138,9 @@ export class ConfigurationService {
         default: environment.rootUrl
       }),
       STRIPE_SECRET_KEY: str({ default: '' }),
+      SYNC_CREDENTIALS_KEY: str({ default: '' }),
+      SYNC_SERVICE_TOKEN: str({ default: '' }),
+      SYNC_SERVICE_URL: str({ default: 'http://sync:8787' }),
       TRUST_PROXY: trustProxy({ default: '' }),
       TWITTER_ACCESS_TOKEN: str({ default: 'dummyAccessToken' }),
       TWITTER_ACCESS_TOKEN_SECRET: str({ default: 'dummyAccessTokenSecret' }),

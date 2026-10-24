@@ -7,6 +7,25 @@
     }
   }
 
+  .allocations-by-tag {
+    .allocations-by-tag-chart {
+      flex: 1 1 20rem;
+      max-width: 40vh;
+    }
+
+    .allocations-by-tag-legend {
+      flex: 1 1 16rem;
+      max-height: 40vh;
+      overflow-y: auto;
+      padding-left: 1rem;
+
+      mat-checkbox {
+        display: block;
+        padding: 0.125rem 0;
+      }
+    }
+  }
+
   .world-map-chart {
     .mat-mdc-card {
       .world-map-chart-container {
