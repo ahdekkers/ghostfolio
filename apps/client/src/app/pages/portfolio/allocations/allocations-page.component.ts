@@ -580,7 +580,9 @@ export class GfAllocationsPageComponent implements OnInit {
       };
     }
 
-    this.includedTagIds = new Set(Object.keys(this.tags));
+    this.includedTagIds = new Set(
+      Object.keys(this.tags).filter((id) => id !== UNKNOWN_KEY)
+    );
 
     this.markets = this.portfolioDetails.markets;
 
