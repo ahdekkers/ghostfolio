@@ -54,6 +54,7 @@ import { McpModule } from './endpoints/mcp/mcp.module';
 import { PlatformsModule } from './endpoints/platforms/platforms.module';
 import { PublicModule } from './endpoints/public/public.module';
 import { SitemapModule } from './endpoints/sitemap/sitemap.module';
+import { SyncModule } from './endpoints/sync/sync.module';
 import { TagsModule } from './endpoints/tags/tags.module';
 import { WatchlistModule } from './endpoints/watchlist/watchlist.module';
 import { ExchangeRateModule } from './exchange-rate/exchange-rate.module';
@@ -155,6 +156,7 @@ import { UserModule } from './user/user.module';
     SitemapModule,
     SubscriptionModule,
     SymbolModule,
+    SyncModule,
     TagsModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigurationModule],

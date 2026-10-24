@@ -1,0 +1,168 @@
+<div class="container">
+  <h1 class="d-none d-sm-block h3 mb-3 text-center" i18n>Sync</h1>
+
+  @if (status(); as status) {
+    @if (!status.isConfigured) {
+      <p class="text-center text-muted" i18n>
+        Sync is not set up on this server yet.
+      </p>
+    } @else {
+      <p class="mb-4 text-center text-muted" i18n>
+        Your API keys are only ever used to read your own history and import it
+        into your portfolio. They are stored encrypted, and nobody else signing
+        in here can see or use them. Syncs run automatically once a week.
+      </p>
+
+      <mat-card appearance="outlined" class="mb-4">
+        <mat-card-content>
+          <div
+            class="align-items-center d-flex flex-wrap justify-content-between"
+          >
+            <div class="pr-3">
+              @if (!status.isReachable) {
+                <span class="text-danger" i18n
+                  >The sync service is not reachable right now.</span
+                >
+              } @else if (status.busy) {
+                <span i18n>Syncing…</span>
+              } @else if (status.lastRun) {
+                <div>
+                  <ng-container i18n>Last sync</ng-container>:
+                  {{ status.lastRun.at | date: 'medium' }}
+                  @if (status.lastRun.ok) {
+                    <span class="text-success" i18n>— succeeded</span>
+                  } @else {
+                    <span class="text-danger" i18n>— had problems</span>
+                  }
+                </div>
+                <div class="small text-muted">{{ status.lastRun.summary }}</div>
+                @for (failure of status.lastRun.failures; track $index) {
+                  <div class="small text-danger">{{ failure }}</div>
+                }
+              } @else {
+                <span class="text-muted" i18n>No sync has run yet.</span>
+              }
+            </div>
+            <button
+              color="primary"
+              mat-flat-button
+              [disabled]="
+                !hasConnections() ||
+                status.busy ||
+                !status.isReachable ||
+                isStarting() ||
+                hasImpersonationId()
+              "
+              (click)="onSyncNow()"
+            >
+              <ng-container i18n>Sync now</ng-container>
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      @for (provider of providers; track provider.id) {
+        @let connection = connections()[provider.id];
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-header>
+            <mat-card-title>{{ provider.name }}</mat-card-title>
+            <mat-card-subtitle>
+              @if (connection) {
+                <span class="text-success" i18n>Connected</span>
+                · <ng-container i18n>key ending</ng-container>
+                {{ connection.hint }} ·
+                <ng-container i18n>updated</ng-container>
+                {{ connection.updatedAt | date: 'mediumDate' }}
+              } @else {
+                <span i18n>Not connected</span>
+              }
+            </mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="small text-muted">{{ provider.help }}</p>
+            <form
+              [formGroup]="forms[provider.id]"
+              (ngSubmit)="onSave(provider)"
+            >
+              <mat-form-field appearance="outline" class="w-100">
+                <mat-label i18n>Account name in Ghostfolio</mat-label>
+                <input
+                  formControlName="accountName"
+                  matInput
+                  [placeholder]="provider.defaultAccountName"
+                />
+                <mat-hint i18n
+                  >Leave empty for “{{ provider.defaultAccountName }}”. Renaming
+                  later creates a new, empty account.</mat-hint
+                >
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="mt-2 w-100">
+                <mat-label i18n>API key</mat-label>
+                <input
+                  autocomplete="off"
+                  formControlName="apiKey"
+                  matInput
+                  type="password"
+                  [placeholder]="connection ? '•••• ' + connection.hint : ''"
+                />
+                @if (connection) {
+                  <mat-hint i18n>Leave empty to keep the stored key</mat-hint>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="mt-2 w-100">
+                <mat-label>
+                  <ng-container i18n>API secret</ng-container>
+                  @if (!provider.isSecretRequired) {
+                    (<ng-container i18n>if your key has one</ng-container>)
+                  }
+                </mat-label>
+                @if (provider.isSecretMultiline) {
+                  <textarea
+                    autocomplete="off"
+                    class="secret"
+                    formControlName="apiSecret"
+                    matInput
+                    rows="3"
+                  ></textarea>
+                } @else {
+                  <input
+                    autocomplete="off"
+                    formControlName="apiSecret"
+                    matInput
+                    type="password"
+                  />
+                }
+              </mat-form-field>
+              <div class="d-flex justify-content-end mt-2">
+                @if (connection) {
+                  <button
+                    class="mr-2"
+                    color="warn"
+                    mat-button
+                    type="button"
+                    [disabled]="hasImpersonationId()"
+                    (click)="onRemove(provider)"
+                  >
+                    <ng-container i18n>Remove</ng-container>
+                  </button>
+                }
+                <button
+                  color="primary"
+                  mat-flat-button
+                  type="submit"
+                  [disabled]="
+                    !canSave(provider) ||
+                    savingProvider() === provider.id ||
+                    hasImpersonationId()
+                  "
+                >
+                  <ng-container i18n>Save</ng-container>
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  }
+</div>
