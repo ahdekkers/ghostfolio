@@ -187,19 +187,25 @@ export class CoinGeckoService implements DataProviderInterface, OnModuleInit {
         vs_currencies: DEFAULT_CURRENCY.toLowerCase()
       });
 
-      const quotes = await this.fetchService
-        .fetch(`${this.apiUrl}/simple/price?${queryParams.toString()}`, {
-          headers: this.headers,
-          signal: AbortSignal.timeout(requestTimeout)
-        })
-        .then((res) => res.json());
+      const quotes = await this.fetchQuotes({
+        requestTimeout,
+        url: `${this.apiUrl}/simple/price?${queryParams.toString()}`
+      });
 
-      for (const symbol in quotes) {
+      for (const symbol of symbols) {
+        // A rate-limited response is `{ status: { error_code: 429 } }`, so only
+        // accept entries which carry an actual price
+        const marketPrice = quotes?.[symbol]?.[DEFAULT_CURRENCY.toLowerCase()];
+
+        if (typeof marketPrice !== 'number' || !(marketPrice > 0)) {
+          continue;
+        }
+
         response[symbol] = {
+          marketPrice,
           currency: DEFAULT_CURRENCY,
           dataProviderInfo: this.getDataProviderInfo(),
           dataSource: DataSource.COINGECKO,
-          marketPrice: quotes[symbol][DEFAULT_CURRENCY.toLowerCase()],
           marketState: 'open'
         };
       }
@@ -218,6 +224,43 @@ export class CoinGeckoService implements DataProviderInterface, OnModuleInit {
     }
 
     return response;
+  }
+
+  private async fetchQuotes({
+    requestTimeout,
+    url
+  }: {
+    requestTimeout: number;
+    url: string;
+  }) {
+    const maxAttempts = 3;
+
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const res = await this.fetchService.fetch(url, {
+          headers: this.headers,
+          signal: AbortSignal.timeout(requestTimeout)
+        });
+
+        if (res.status === 429 || res.status >= 500) {
+          throw new Error(`CoinGecko responded with status ${res.status}`);
+        }
+
+        return await res.json();
+      } catch (error) {
+        if (attempt >= maxAttempts) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Quote request failed (attempt ${attempt} of ${maxAttempts}): ${error?.message ?? error}`
+        );
+
+        await new Promise((resolve) => {
+          return setTimeout(resolve, attempt * 1000);
+        });
+      }
+    }
   }
 
   public getTestSymbol() {

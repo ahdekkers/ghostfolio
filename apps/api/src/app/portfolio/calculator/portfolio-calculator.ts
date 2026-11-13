@@ -6,6 +6,7 @@ import { PortfolioSnapshotValue } from '@ghostfolio/api/app/portfolio/interfaces
 import { TransactionPointSymbol } from '@ghostfolio/api/app/portfolio/interfaces/transaction-point-symbol.interface';
 import { TransactionPoint } from '@ghostfolio/api/app/portfolio/interfaces/transaction-point.interface';
 import { RedisCacheService } from '@ghostfolio/api/app/redis-cache/redis-cache.service';
+import { carryForwardMarketPrices } from '@ghostfolio/api/helper/market-price.helper';
 import { getFactor } from '@ghostfolio/api/helper/portfolio.helper';
 import { LogPerformance } from '@ghostfolio/api/interceptors/performance-logging/performance-logging.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
@@ -298,6 +299,19 @@ export abstract class PortfolioCalculator {
     }
 
     const endDateString = format(this.endDate, DATE_FORMAT);
+
+    // A failed live quote must not value a holding at its cost basis
+    for (const { date, symbol } of carryForwardMarketPrices({
+      endDateString,
+      marketSymbolMap,
+      symbols: dataGatheringItems.map(({ symbol }) => {
+        return symbol;
+      })
+    })) {
+      this.logger.warn(
+        `No market price for ${symbol} on ${endDateString}, using the one from ${date}`
+      );
+    }
 
     const daysInMarket = differenceInDays(this.endDate, this.startDate);
 
