@@ -38,15 +38,27 @@ import { StatusCodes } from 'http-status-codes';
 export class GhostfolioService implements DataProviderInterface {
   private readonly logger = new Logger(GhostfolioService.name);
 
-  private readonly URL = environment.production
-    ? 'https://ghostfol.io/api'
-    : `${this.configurationService.get('ROOT_URL')}/api`;
+  private readonly URL: string;
 
   public constructor(
     private readonly configurationService: ConfigurationService,
     private readonly fetchService: FetchService,
     private readonly propertyService: PropertyService
-  ) {}
+  ) {
+    const customUrl = this.configurationService.get(
+      'DATA_PROVIDER_GHOSTFOLIO_URL'
+    );
+
+    if (customUrl) {
+      this.URL = customUrl.replace(/\/+$/, '');
+    } else {
+      this.URL = environment.production
+        ? 'https://ghostfol.io/api'
+        : `${this.configurationService.get('ROOT_URL')}/api`;
+    }
+
+    this.logger.debug(`Using base URL ${this.URL}`);
+  }
 
   public canHandle() {
     return true;
@@ -101,6 +113,23 @@ export class GhostfolioService implements DataProviderInterface {
   }
 
   public getDataProviderInfo(): DataProviderInfo {
+    if (this.configurationService.get('DATA_PROVIDER_GHOSTFOLIO_URL')) {
+      let url: string;
+
+      try {
+        url = new URL(this.URL).origin;
+      } catch {
+        url = this.URL;
+      }
+
+      return {
+        url,
+        dataSource: DataSource.GHOSTFOLIO,
+        isPremium: true,
+        name: 'Ghostfolio (custom endpoint)'
+      };
+    }
+
     return {
       dataSource: DataSource.GHOSTFOLIO,
       isPremium: true,
