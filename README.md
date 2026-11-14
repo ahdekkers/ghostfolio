@@ -179,6 +179,18 @@ Ghostfolio is available for various home server systems, including [CasaOS](http
 
 For detailed information on the environment setup and development process, please refer to [DEVELOPMENT.md](./DEVELOPMENT.md).
 
+## Fork changes
+
+### Self-hosted `GHOSTFOLIO` data provider endpoint
+
+Set `DATA_PROVIDER_GHOSTFOLIO_URL` (e.g. `http://marketdata:8000/api`) to point the built-in `GHOSTFOLIO` data provider at a self-hosted service that implements Ghostfolio's data-provider API (`/api/v1|v2/data-providers/ghostfolio/...`). When unset, behavior is unchanged.
+
+1. Set `DATA_PROVIDER_GHOSTFOLIO_URL` to the API base URL (a trailing `/` is ignored).
+2. Enter the API key in Admin Control → Settings. It is sent as `Authorization: Api-Key <key>`.
+3. To also source FX rates from it, set `DATA_SOURCE_EXCHANGE_RATES=GHOSTFOLIO`, then run "Gather all data" in Admin Control.
+
+To revert: unset `DATA_PROVIDER_GHOSTFOLIO_URL` (or delete the API key) and set `DATA_SOURCE_EXCHANGE_RATES` back to its previous value (default `YAHOO`).
+
 ## Public API
 
 ### Authorization: Bearer Token
